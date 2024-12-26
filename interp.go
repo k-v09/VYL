@@ -32,6 +32,13 @@ func VarMaker(l []string) []string {
 	}
 	return []string{l[0], s}
 }
+func Factorial(n int64) int64 {
+	if n == 1 {
+		return 1
+	}
+	fact := n * Factorial(n-1)
+	return fact
+}
 
 func Eval() {
 	vars := make(map[string]int64)
@@ -64,6 +71,7 @@ func EvalExp(s string, v map[string]int64) (int64, map[string]int64) {
 				panic(err)
 			}
 			stack = append(stack, num)
+			// These are just the dyadics for now. "!" will be factorial when monadic.
 		} else if _, exists := v[tokens[i]]; exists {
 			stack = append(stack, v[tokens[i]])
 		} else if tokens[i] == "+" {
@@ -86,6 +94,13 @@ func EvalExp(s string, v map[string]int64) (int64, map[string]int64) {
 			rh, stack := Pop(stack)
 			lh, stack := Pop(stack)
 			stack = append(stack, lh%rh)
+		} else if tokens[i] == "^" {
+
+		} else if tokens[i] == "!" {
+			k, stack := Pop(stack)
+			n, stack := Pop(stack)
+			// n!k=n!/(k!*(n-k)!)
+			stack = append(stack, Factorial(n)/(Factorial(k)*Factorial(n-k)))
 		}
 	}
 	_, stack = Pop(stack)
