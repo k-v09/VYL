@@ -39,9 +39,26 @@ func Factorial(n int64) int64 {
 	fact := n * Factorial(n-1)
 	return fact
 }
+/*func FormatSplit(l []string) []string {
+	s := ""
+	rl := []string{}
+	for i, v := range(l) {
+		if v == " " {
+			if len(rl) != 0 {
+				rl = append(rl, s)
+				s = ""
+			}
+		} else {s += v}
+		if i == len(l)-1 && len(s) != 0 {
+			rl = append(rl, s)
+		}
+	}
+	return rl
+}*/
 
 func Eval() {
 	vars := make(map[string]int64)
+	funcs := strings.Split("+-=/*%!", "")
 	file, err := os.Open("file.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -52,8 +69,19 @@ func Eval() {
 	for scanner.Scan() {
 		line := scanner.Text()
 		lines = append(lines, line)
-		vn := VarMaker(strings.Split(line, " "))
-		vars[vn[0]], vars = EvalExp(vn[1], vars)
+		spl := strings.Split(line, " ")
+		if len(spl) > 2 {
+			NotIn := true
+			for _, v := range(funcs) {
+				if v == spl[0] {NotIn=false}
+			}
+			if NotIn && spl[1] == "=" {
+				vn := VarMaker(spl)
+				vars[vn[0]], vars = EvalExp(vn[1], vars)
+				continue
+			}
+		}
+		EvalExp(line, vars)
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
@@ -94,8 +122,6 @@ func EvalExp(s string, v map[string]int64) (int64, map[string]int64) {
 			rh, stack := Pop(stack)
 			lh, stack := Pop(stack)
 			stack = append(stack, lh%rh)
-		} else if tokens[i] == "^" {
-
 		} else if tokens[i] == "!" {
 			k, stack := Pop(stack)
 			n, stack := Pop(stack)
