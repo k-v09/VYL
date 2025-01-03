@@ -134,6 +134,8 @@ func EvalExp(s string, v map[string]int64) (int64, map[string]int64) {
 	return stack[0], v
 }	
 
+/*
 func main() {
 	Eval()
 }
+*/
