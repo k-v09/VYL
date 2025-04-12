@@ -37,7 +37,6 @@ impl Parser {
     }
     
     fn parse_use_statement(&mut self) -> Result<ASTNode, String> {
-        // use [package];
         self.consume(TokenType::LeftBracket, "Expected '[' after 'use'")?;
         
         let package = self.consume(TokenType::Identifier, "Expected package name")?;
@@ -49,7 +48,6 @@ impl Parser {
     }
     
     fn parse_variable_declaration(&mut self) -> Result<ASTNode, String> {
-        // type/name/ = value;
         let var_type = self.advance().lexeme;
         
         self.consume(TokenType::Slash, "Expected '/' after type name")?;
@@ -166,13 +164,11 @@ impl Parser {
     }
 
     fn parse_function_declaration(&mut self) -> Result<ASTNode, String> {
-        // /name/(params)returnType {}
         let name = self.consume(TokenType::Identifier, "Expected function name after '/'")?;
         
         self.consume(TokenType::Slash, "Expected '/' after function name")?;
         self.consume(TokenType::LeftParen, "Expected '(' after function name")?;
         
-        // Parse parameters
         let mut params = Vec::new();
         
         if !self.check(TokenType::RightParen) {
@@ -189,15 +185,9 @@ impl Parser {
         }
         
         self.consume(TokenType::RightParen, "Expected ')' after parameters")?;
-        
-        // Parse return type
-        let return_type = self.consume(TokenType::Type, "Expected return type")?;
-        
-        // Parse function body
+        let return_type = self.consume(TokenType::Type, "Expected return type")?; 
         self.consume(TokenType::LeftBrace, "Expected '{' before function body")?;
-        
         let mut body = Vec::new();
-        
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             body.push(self.parse_statement()?);
         }
@@ -212,7 +202,6 @@ impl Parser {
         })
     }
     
-    // Helper methods
     fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
