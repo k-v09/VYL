@@ -1,0 +1,33 @@
+// Import music theory package
+use [theory];
+
+// Define a note
+Note/c4/ = 261.63;  // C4 frequency in Hz
+
+// Define a scale
+Scale/major/ = [0, 2, 4, 5, 7, 9, 11];
+
+// Function to transpose a note by interval
+/transpose/(Note input, Interval step)Note {
+    Note/result/ = input.frequency * step.ratio;
+    return result;
+}
+
+// Define a simple melody
+Sequence/melody/ = {
+    c4: 1.0,    // note: duration
+    d4: 0.5,
+    e4: 0.5,
+    f4: 1.0
+};
+
+// Function to play a sequence with a specific tuning
+/play/(Sequence seq, Tuning system)Void {
+    use [audio];
+    
+    // Apply tuning system to the sequence
+    Sequence/tuned/ = system.apply(seq);
+    
+    // Output to audio
+    audio.output(tuned);
+}
