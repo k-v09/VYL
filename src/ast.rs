@@ -2,6 +2,7 @@
 pub enum ASTNode {
     Program(Vec<ASTNode>),
     UseStatement(String),
+    ReturnStatement(Box<ASTNode>),
     VariableDeclaration {
         var_type: String,
         name: String,
@@ -9,7 +10,7 @@ pub enum ASTNode {
     },
     FunctionDeclaration {
         name: String,
-        params: Vec<(String, String)>, // (param_name, param_type)
+        params: Vec<(String, String)>,
         return_type: String,
         body: Vec<ASTNode>,
     },
@@ -30,4 +31,10 @@ pub enum ASTNode {
         operator: String,
         right: Box<ASTNode>,
     },
+    MethodCall {
+        object: Box<ASTNode>,
+        method: String,
+        arguments: Vec<ASTNode>,
+    },
+    ExpressionStatement(Box<ASTNode>),
 }

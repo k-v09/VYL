@@ -27,8 +27,18 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<ASTNode, String> {
         if self.match_token(TokenType::Use) {
             return self.parse_use_statement();
-        } else if self.check(TokenType::Type) || self.check(TokenType::Identifier) {
+        } else if self.match_token(TokenType::Return) {
+            return self.parse_return_statement();
+        } else if self.check(TokenType::Type) {
             return self.parse_variable_declaration();
+        } else if self.check(TokenType::Identifier) {
+            let current_position = self.current;
+            if self.peek_next().token_type == TokenType::Slash {
+                return self.parse_variable_declaration();
+            }
+
+            self.current = current_position;
+            return self.parse_expression_statement();
         } else if self.match_token(TokenType::Slash) {
             return self.parse_function_declaration();
         }
@@ -46,14 +56,54 @@ impl Parser {
         
         Ok(ASTNode::UseStatement(package.lexeme))
     }
+
+    fn parse_return_statement(&mut self) -> Result<ASTNode, String> {
+        let value = self.parse_expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after return statement")?;
+    
+        Ok(ASTNode::ReturnStatement(value))
+    }
     
     fn parse_variable_declaration(&mut self) -> Result<ASTNode, String> {
-        let var_type = self.advance().lexeme;
-        
+        println!("Current token: {:?}", self.peek());
+
+        let var_type;
+        if self.check(TokenType::Type) {
+            var_type = self.advance().lexeme;
+        } else if self.check(TokenType::Identifier) {
+            // treating it as a type anyway cause im lazy rm
+            // see it would've been easier to fix it to "rn" instead of writing this whole comment
+            // but oh welli guess this is the state of my world at present. How are you? I hope
+            // your day is going well. :)
+            var_type = self.advance().lexeme;
+        } else {
+            return Err(format!("Expected type or identifier, got {:?}", self.peek().token_type));
+        }
+
+        let type_token = self.peek().clone();
+        println!("Found type: {}, token type: {:?}", var_type, type_token.token_type);
+        self.consume(TokenType::Slash, "Expected '/' after type name")?;
+        let name = self.consume(TokenType::Identifier, "Expected variable name")?;
+        self.consume(TokenType::Slash, "Expected '/' after variable name")?;
+        self.consume(TokenType::Equal, "Expected '=' after variable declaration")?;
+        let value = self.parse_expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after variable declaration")?;
+        Ok(ASTNode::VariableDeclaration {
+            var_type,
+            name: name.lexeme,
+            value,
+        })
+    }
+
+    /*fn parse_variable_declaration(&mut self) -> Result<ASTNode, String> {
+        if !self.check(TokenType::Type) && !self.check(TokenType::Identifier) {
+            return Err(format!("Expected type name or identifier, got {:?}", self.peek().token_type));
+        }
+
+        let var_type = self.advance().lexeme; 
         self.consume(TokenType::Slash, "Expected '/' after type name")?;
         
         let name = self.consume(TokenType::Identifier, "Expected variable name")?;
-        
         self.consume(TokenType::Slash, "Expected '/' after variable name")?;
         self.consume(TokenType::Equal, "Expected '=' after variable declaration")?;
         
@@ -66,10 +116,18 @@ impl Parser {
             name: name.lexeme,
             value,
         })
+    }*/
+
+    fn parse_expression_statement(&mut self) -> Result<ASTNode, String> {
+        let expr = self.parse_expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after expression")?;
+
+        Ok(ASTNode::ExpressionStatement(expr))
     }
     
     fn parse_expression(&mut self) -> Result<Box<ASTNode>, String> {
         let mut expr = self.parse_primary()?;
+
         loop {
             if self.match_token(TokenType::Asterisk) {
                 let right = self.parse_primary()?;
@@ -81,14 +139,37 @@ impl Parser {
             } else if self.match_token(TokenType::Dot) {
                 let property = self.consume(TokenType::Identifier, "Expected property name after '.'")?;
 
-                expr = Box::new(ASTNode::PropertyAccess {
-                    object: Box::new(*expr),
-                    property: property.lexeme,
-                });
+                if self.match_token(TokenType::LeftParen) {
+                    let mut arguments = Vec::new();
+
+                    if !self.check(TokenType::RightParen) {
+                        loop {
+                            arguments.push(*self.parse_expression()?);
+
+                            if !self.match_token(TokenType::Comma) {
+                                break;
+                            }
+                        }
+                    }
+
+                    self.consume(TokenType::RightParen, "Expected ')' after method arguments")?;
+
+                    expr = Box::new(ASTNode::MethodCall {
+                        object: Box::new(*expr),
+                        method: property.lexeme,
+                        arguments,
+                    });
+                } else {
+                    expr = Box::new(ASTNode::PropertyAccess {
+                        object: Box::new(*expr),
+                        property: property.lexeme,
+                    });
+                }
             } else {
                 break;
             }
         }
+
         Ok(expr)
     }
 
@@ -149,7 +230,9 @@ impl Parser {
         let mut properties = Vec::new();
         if !self.check(TokenType::RightBrace) {
             loop {
-                let key = self.consume(TokenType::Colon, "Expected ':' after property name")?;
+                let key = self.consume(TokenType::Identifier, "Expected property name")?;
+                self.consume(TokenType::Colon, "Expected ':' after property name")?;
+
                 let value = self.parse_expression()?;
                 properties.push((key.lexeme, *value));
 
@@ -236,6 +319,14 @@ impl Parser {
     
     fn peek(&self) -> &Token {
         &self.tokens[self.current]
+    }
+
+    fn peek_next(&self) -> &Token {
+        if self.current + 1 >= self.tokens.len() {
+            &self.tokens[self.tokens.len() - 1]
+        } else {
+            &self.tokens[self.current + 1]
+        }
     }
     
     fn previous(&self) -> Token {

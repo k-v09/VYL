@@ -2,6 +2,7 @@
 pub enum TokenType {
     // Keywords
     Use,
+    Return,
     
     // Identifiers and literals
     Identifier,
@@ -176,6 +177,7 @@ impl<'a> Lexer<'a> {
         
         let token_type = match identifier.as_str() {
             "use" => TokenType::Use,
+            "return" => TokenType::Return,
             _ => {
                 if identifier.chars().next().unwrap().is_uppercase() {
                     TokenType::Type
