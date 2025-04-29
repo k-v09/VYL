@@ -3,6 +3,16 @@ pub enum TokenType {
     // Keywords
     Use,
     Return,
+    If,
+    Else,
+    While,
+    For,
+    Try,
+    Catch,
+    Finally,
+    Class,
+    Interface,
+    Match,
     
     // Identifiers and literals
     Identifier,
@@ -22,8 +32,23 @@ pub enum TokenType {
     RightBrace,    // }
     Comma,         // ,
     Colon,         // :
-    Asterisk,
-    Dot,
+    Asterisk,      // *
+    Dot,           // .
+    Dollar,        // $
+    Question,      // ?
+    Plus,          // +
+    Minus,         // -
+    Bang,          // !
+    Tilde,         // ~
+    Ampersand,     // &
+    Pipe,          // |
+    DoubleEqual,   // ==
+    NotEqual,      // !=
+    LessThan,      // <
+    GreaterThan,   // >
+    LessEqual,     // <=
+    GreaterEqual,  // >=
+    Arrow,         // =>
     
     EOF,
     Unknown,
@@ -91,10 +116,28 @@ impl<'a> Lexer<'a> {
                 lexeme: String::from("/"),
                 line: self.line,
             },
-            '=' => Token {
-                token_type: TokenType::Equal,
-                lexeme: String::from("="),
-                line: self.line,
+            '=' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    Token {
+                        token_type: TokenType::DoubleEqual,
+                        lexeme: String::from("=="),
+                        line: self.line,
+                    }
+                } else if self.peek() == '>' {
+                    self.advance();
+                    Token {
+                        token_type: TokenType::Arrow,
+                        lexeme: String::from("=>"),
+                        line: self.line,
+                    }
+                } else {
+                    Token{
+                        token_type: TokenType::Equal,
+                        lexeme: String::from("="),
+                        line: self.line,
+                    }
+                }
             },
             ';' => Token {
                 token_type: TokenType::Semicolon,
@@ -151,6 +194,89 @@ impl<'a> Lexer<'a> {
                 lexeme: String::from("."),
                 line: self.line,
             },
+            '$' => Token {
+                token_type: TokenType::Dollar,
+                lexeme: String::from("$"),
+                line: self.line,
+            },
+            '?' => Token {
+                token_type: TokenType::Question,
+                lexeme: String::from("?"),
+                line: self.line,
+            },
+            '+' => Token {
+                token_type: TokenType::Plus,
+                lexeme: String::from("+"),
+                line: self.line,
+            },
+            '-' => Token {
+                token_type: TokenType::Minus,
+                lexeme: String::from("-"),
+                line: self.line,
+            },
+            '~' => Token {
+                token_type: TokenType::Tilde,
+                lexeme: String::from("~"),
+                line: self.line,
+            },
+            '!' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    Token {
+                        token_type: TokenType::NotEqual,
+                        lexeme: String::from("!="),
+                        line: self.line,
+                    }
+                } else {
+                    Token {
+                        token_type: TokenType::Bang,
+                        lexeme: String::from("!"),
+                        line: self.line,
+                    }
+                }
+            },
+            '<' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    Token {
+                        token_type: TokenType::LessEqual,
+                        lexeme: String::from("<="),
+                        line: self.line,
+                    }
+                } else {
+                    Token {
+                        token_type: TokenType::LessThan,
+                        lexeme: String::from("<"),
+                        line: self.line,
+                    }
+                }
+            },
+            '>' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    Token {
+                        token_type: TokenType::GreaterEqual,
+                        lexeme: String::from(">="),
+                        line: self.line,
+                    }
+                } else {
+                    Token {
+                        token_type: TokenType::GreaterThan,
+                        lexeme: String::from(">"),
+                        line: self.line,
+                    }
+                }
+            },
+            '&' => Token {
+                token_type: TokenType::Ampersand,
+                lexeme: String::from("&"),
+                line: self.line,
+            },
+            '|' => Token {
+                token_type: TokenType::Pipe,
+                lexeme: String::from("|"),
+                line: self.line,
+            },
             _ => {
                 if self.is_alpha(c) {
                     return self.identifier_or_keyword(c);
@@ -178,6 +304,16 @@ impl<'a> Lexer<'a> {
         let token_type = match identifier.as_str() {
             "use" => TokenType::Use,
             "return" => TokenType::Return,
+            "if" => TokenType::If,
+            "else" => TokenType::Else,
+            "while" => TokenType::While,
+            "for" => TokenType::For,
+            "try" => TokenType::Try,
+            "catch" => TokenType::Catch,
+            "finally" => TokenType::Finally,
+            "class" => TokenType::Class,
+            "interface" => TokenType::Interface,
+            "match" => TokenType::Match,
             _ => {
                 if identifier.chars().next().unwrap().is_uppercase() {
                     TokenType::Type
@@ -262,7 +398,7 @@ impl<'a> Lexer<'a> {
                     self.advance();
                 }
                 // Comments
-                '/' if self.peek_next() == '/' => {
+                '$' => {
                     while !self.is_at_end() && self.peek() != '\n' {
                         self.advance();
                     }
